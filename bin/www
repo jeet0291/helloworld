@@ -8,6 +8,7 @@ var app = require('../app');
 var debug = require('debug')('hellow:server');
 var http = require('http');
 
+
 /**
  * Get port from environment and store in Express.
  */
@@ -20,6 +21,79 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+const socketIO = require('socket.io');
+const io = socketIO(server);
+let gameStartIn = 5;
+let gameDuration = 15;
+var roomno = 0;
+let team = {};
+io.on('connection', function(socket) {
+    let player = null;
+    console.log("########### CONNECTED ############");
+    socket.on('game-start', (config) => {
+      console.log("########### GAME STARTED ############");      
+      player = {
+          socketId: socket.id,
+          nickname: config.nickname,
+          fire: 0
+      };
+      team[player.socketId] = player;
+      // console.log("########### PLAYERS ############", team);
+      if(roomno==1){
+        console.log("######### JOIN ROOM ##########");
+        socket.join("room-"+roomno);
+      }else {
+        console.log("######### CREATE NEW ROOM ##########");
+        roomno++;
+        io.nsps['/'].adapter.rooms["room-"+roomno];
+        socket.join("room-"+roomno);
+        tick(roomno,gameStartIn,"lobbyTime");
+        setInterval(function(){ 
+          roomno=0;
+        }, gameStartIn * 1000);
+      }
+      
+      // EMIT PLAYER INFO IN ROOM //
+      io.sockets.in("room-"+roomno).emit('connectToRoom', team);
+    });
+
+    // Emit Timer Data in All the Rooms Every second // 
+      
+      function tick(roomno,secondLeft,type) {
+          console.log('tick',roomno,secondLeft);
+          secondLeft -= 1;
+          if(secondLeft === 0){
+            if(type == "lobbyTime"){
+              io.sockets.in("room-"+roomno).emit('playzoneStart', {test:"fire"});
+              tick(roomno,gameDuration,"gameTime");
+            }else if(type == "gameTime"){
+              io.sockets.in("room-"+roomno).emit("scoreBoard",team);
+            }
+          } else {
+            if(type == "lobbyTime"){
+              io.sockets.in("room-"+roomno).emit("timer",{ "secondLeft" : secondLeft});
+            }else if(type == "gameTime"){
+              io.sockets.in("room-"+roomno).emit("gameTime",{ "secondLeft" : secondLeft});
+            }
+            setTimeout(tick, 1000,roomno,secondLeft,type);
+          }
+      };
+      
+    socket.on('shoot', function(player){
+        team[player.socketId].fire += 1;
+        console.log("########### SHOOT ############",team); 
+
+    });
+
+    socket.on('disconnect', () => {
+        console.log("########### DISCONNECTED ############"); 
+        if(!player){return;}
+        delete team[player.id];
+        player = null;
+    });
+});
+
+
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -88,3 +162,6 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+
+module.exports = server;
