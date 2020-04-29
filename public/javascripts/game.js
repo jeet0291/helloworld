@@ -23,20 +23,29 @@ function fireToEnemy(){
 $("#fire-button").on('click', fireToEnemy);
 
 
-function makeUL(players) {
+function makeUL(players,type) {
     var list;
     list = document.getElementById('lobby-players');
     if(!list){
         list = document.createElement('ul');
         list.setAttribute("id", "lobby-players");
     }
-    for(var i = 0; i < Object.keys(players).length; i++) {
-        var item = document.createElement('li');
-        item.appendChild(document.createTextNode(Object.values(players)[i].nickname+" Fired "));
-        if(Object.values(players)[i].fire){
-            item.appendChild(document.createTextNode(Object.values(players)[i].fire+" Times"));
+
+    if(type == "lobby"){
+        for(var i = 0; i < Object.keys(players).length; i++) {
+            var item = document.createElement('li');
+            item.appendChild(document.createTextNode(Object.values(players)[i].nickname));
+            list.appendChild(item);
         }
-        list.appendChild(item);
+    }else{
+        for(var i = 0; i < Object.keys(players).length; i++) {
+            var item = document.createElement('li');
+            item.appendChild(document.createTextNode(Object.values(players)[i].nickname+" Fired "));
+            if(Object.values(players)[i].fire){
+                item.appendChild(document.createTextNode(Object.values(players)[i].fire+" Times"));
+            }
+            list.appendChild(item);
+        }
     }
     return list;
 }
@@ -65,20 +74,21 @@ socket.on('connectToRoom',function(players) {
         myList.innerHTML = '';
     }
     document.getElementById('lobby-screen').appendChild(makeUL(
-        players
+        players,"lobby"
     ));
  });
 
  socket.on('scoreBoard',function(players) {
     $("#start-screen").hide();
-    $("#lobby-screen").show();
+    $("#lobby-screen").hide();
+    $("#score-board").show();
     $("#play-zone").hide();
     var myList = document.getElementById('lobby-players');
     if(myList){
         myList.innerHTML = '';
     }
-    document.getElementById('lobby-screen').appendChild(makeUL(
-        players
+    document.getElementById('score-board').appendChild(makeUL(
+        players,"score"
     ));
  });
 

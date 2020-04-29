@@ -23,8 +23,8 @@ app.set('port', port);
 var server = http.createServer(app);
 const socketIO = require('socket.io');
 const io = socketIO(server);
-let gameStartIn = 5;
-let gameDuration = 15;
+let gameStartIn = 25;
+let gameDuration = 25;
 var roomno = 0;
 let team = {};
 io.on('connection', function(socket) {
